@@ -25,7 +25,6 @@ ssl.truststore.password=cc2023
 ssl.keystore.location=creds/admins/$1/kafka.keystore.pkcs12
 ssl.keystore.password=cc2023
 EOF
-
 }
 
 

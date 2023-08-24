@@ -1,9 +1,9 @@
 #!/bin/bash 
 
-USAGE="Usage: create_client_creds.sh <number-clients>
+USAGE="Usage: create_group_creds.sh <number-groups>
 
 Options:
-    <number-clients> is a required argument and must be an integer
+    <number-groups> is a required argument and must be an integer
 "
 
 
@@ -45,65 +45,65 @@ fi
 
 shopt -s nullglob
 set -e
-client_creds_dir="creds/clients"
+group_creds_dir="creds/groups"
 
 for (( i=1; i<="$1"; i++ ))
 do
-    client_name="client${i}"
-	echo "------------------------------- $client_name -------------------------------"
-    client_dir=${client_creds_dir}/${client_name}
+    group_name="group${i}"
+	echo "------------------------------- $group_name -------------------------------"
+    group_dir=${group_creds_dir}/${group_name}
 
-    mkdir -p ${client_dir}
+    mkdir -p ${group_dir}
 
-    make_cnf $client_name ${client_dir}/${client_name}.cnf
-    make_client_props $client_name ${client_dir}/client-ssl.properties
-    cp ca/ca.crt ${client_dir}/
+    make_cnf $group_name ${group_dir}/${group_name}.cnf
+    make_client_props $group_name ${group_dir}/client-ssl.properties
+    cp ca/ca.crt ${group_dir}/
 
 
     # Create server key & certificate signing request(.csr file)
     openssl req -new \
     -newkey rsa:2048 \
-    -keyout ${client_dir}/$client_name.key \
-    -out ${client_dir}/$client_name.csr \
-    -config ${client_dir}/$client_name.cnf \
+    -keyout ${group_dir}/$group_name.key \
+    -out ${group_dir}/$group_name.csr \
+    -config ${group_dir}/$group_name.cnf \
     -nodes
 
     # Sign server certificate with CA
     openssl x509 -req \
     -days 3650 \
-    -in ${client_dir}/$client_name.csr \
+    -in ${group_dir}/$group_name.csr \
     -CA ca/ca.crt \
     -CAkey ca/ca.key \
     -CAcreateserial \
-    -out ${client_dir}/$client_name.crt \
-    -extfile ${client_dir}/$client_name.cnf
+    -out ${group_dir}/$group_name.crt \
+    -extfile ${group_dir}/$group_name.cnf
 
     # Convert server certificate to pkcs12 format
     openssl pkcs12 -export \
-    -in ${client_dir}/$client_name.crt \
-    -inkey ${client_dir}/$client_name.key \
+    -in ${group_dir}/$group_name.crt \
+    -inkey ${group_dir}/$group_name.key \
     -chain \
     -CAfile ca/ca.pem \
-    -name $client_name \
-    -out ${client_dir}/$client_name.p12 \
+    -name $group_name \
+    -out ${group_dir}/$group_name.p12 \
     -password pass:cc2023
 
     # Create server keystore
     keytool -importkeystore \
     -deststorepass cc2023 \
-    -destkeystore ${client_dir}/kafka.keystore.pkcs12 \
-    -srckeystore ${client_dir}/$client_name.p12 \
+    -destkeystore ${group_dir}/kafka.keystore.pkcs12 \
+    -srckeystore ${group_dir}/$group_name.p12 \
     -deststoretype PKCS12  \
     -srcstoretype PKCS12 \
     -noprompt \
     -srcstorepass cc2023
 
-    keytool -keystore ${client_dir}/kafka.truststore.pkcs12 \
+    keytool -keystore ${group_dir}/kafka.truststore.pkcs12 \
     -alias CARoot \
     -importcert -file ca/ca.crt \
     -noprompt \
     -storepass cc2023 \
     -deststoretype PKCS12
 
-    rm "${client_dir}/${client_name}".*
+    rm "${group_dir}/${group_name}".*
 done
