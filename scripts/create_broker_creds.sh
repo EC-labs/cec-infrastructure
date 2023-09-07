@@ -31,8 +31,7 @@ do
     -CAkey ca/ca.key \
     -CAcreateserial \
     -out ${broker_dir}/$i.crt \
-    -extfile ${broker_dir}/$i.cnf \
-    -extensions v3_req
+    -extfile ${broker_dir}/$i.cnf
 
     # Convert server certificate to pkcs12 format
     openssl pkcs12 -export \
