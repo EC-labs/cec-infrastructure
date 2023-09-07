@@ -12,21 +12,21 @@ for client in "${clients[@]}"; do
 
     # Create tutorials topic
     kafka-topics --command-config ./creds/admins/landau/client-ssl.properties \
-        --bootstrap-server ec2-13-50-5-220.eu-north-1.compute.amazonaws.com:19093 \
+        --bootstrap-server 13.49.128.80:19093 \
         --create \
         --topic "$client" \
         --partitions 16
 
     # Add write permissions to client
     kafka-acls --command-config ./creds/admins/landau/client-ssl.properties \
-        --bootstrap-server ec2-13-50-5-220.eu-north-1.compute.amazonaws.com:19093 \
+        --bootstrap-server 13.49.128.80:19093 \
         --add --allow-principal "User:${client}" \
         --operation write \
         --topic "$client"
 
     # Add read permissions for topic
     kafka-acls --command-config ./creds/admins/landau/client-ssl.properties \
-        --bootstrap-server ec2-13-50-5-220.eu-north-1.compute.amazonaws.com:19093 \
+        --bootstrap-server 13.49.128.80:19093 \
         --add \
         --allow-principal "User:${client}" \
         --operation read \
@@ -34,7 +34,7 @@ for client in "${clients[@]}"; do
 
     # Add read permissions for all groups
     kafka-acls --command-config ./creds/admins/landau/client-ssl.properties \
-        --bootstrap-server ec2-13-50-5-220.eu-north-1.compute.amazonaws.com:19093 \
+        --bootstrap-server 13.49.128.80:19093 \
         --add \
         --allow-principal "User:${client}" \
         --operation read \
