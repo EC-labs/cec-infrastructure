@@ -12,6 +12,11 @@ services:
       - test-data-zk-data-1:/var/lib/zookeeper/data
     networks:
       - test-confluent
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: 5
     environment:
       - ZOOKEEPER_SERVER_ID=1
       - ZOOKEEPER_CLIENT_PORT=12181
@@ -32,6 +37,11 @@ services:
     volumes:
       - test-data-kafka-1:/var/lib/kafka/data
       - ./creds/brokers/kafka-1:/etc/kafka/secrets
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: 5
     environment:
       KAFKA_BROKER_ID: 101
       KAFKA_ZOOKEEPER_CONNECT: zk-1:12181
@@ -74,6 +84,11 @@ services:
     volumes:
       - test-data-kafka-2:/var/lib/kafka/data
       - ./creds/brokers/kafka-2:/etc/kafka/secrets
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: 5
     environment:
       KAFKA_BROKER_ID: 102
       KAFKA_ZOOKEEPER_CONNECT: zk-1:12181
@@ -116,6 +131,11 @@ services:
     volumes:
       - test-data-kafka-3:/var/lib/kafka/data
       - ./creds/brokers/kafka-3:/etc/kafka/secrets
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: 5
     environment:
       KAFKA_BROKER_ID: 103
       KAFKA_ZOOKEEPER_CONNECT: zk-1:12181
