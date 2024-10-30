@@ -9,30 +9,31 @@ services:
       - ./creds/brokers/kafka-1:/etc/kafka/secrets
     environment:
       KAFKA_NODE_ID: 1
-      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka1:29093'
+      CLUSTER_ID: 'ciWo7IWazngRchmPES6q5A'
       KAFKA_PROCESS_ROLES: 'broker,controller'
-      CLUSTER_ID: 'ciWo7IWazngRchmPES6q5A=='
 
-      KAFKA_LISTENERS: 'INTERNAL://kafka1:29092,CONTROLLER://kafka1:29093,EXTERNAL://0.0.0.0:9092'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:SSL'
-      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka1:29092,EXTERNAL://13.60.146.188:9092'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:29093'
+
+      KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:SSL,INTERNAL:SSL,EXTERNAL:SSL'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-1:29092,EXTERNAL://kafka-1:9092'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
 
-      KAFKA_SSL_KEYSTORE_FILENAME: kafka.keystore.pkcs12
-      KAFKA_SSL_KEYSTORE_CREDENTIALS: keystore_creds
-      KAFKA_SSL_KEY_CREDENTIALS: sslkey_creds
-      KAFKA_SSL_TRUSTSTORE_FILENAME: kafka.truststore.jks
-      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: keystore_creds
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.keystore.pkcs12
+      KAFKA_SSL_KEYSTORE_TYPE: PKCS12
+      KAFKA_SSL_KEYSTORE_PASSWORD: cc2023
+      KAFKA_SSL_KEY_PASSWORD: cc2023
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: cc2023
       KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
-      KAFKA_SSL_PRINCIPAL_MAPPING_RULES: "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$$/$$1/L,DEFAULT"
+      KAFKA_SSL_PRINCIPAL_MAPPING_RULES: "RULE:^.*[Cc][Nn]=([a-zA-Z0-9-.]*).*$$/$$1/L,DEFAULT"
       KAFKA_SSL_CLIENT_AUTH: "required"
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
-      KAFKA_SUPER_USERS: User:landau;User:kafka;User:CN=kafka-1,L=MountainView,O=CONFLUENT,C=US;User:CN=kafka-2,L=MountainView,O=CONFLUENT,C=US;User:CN=kafka-3,L=MountainView,O=CONFLUENT,C=US
-
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
 
       KAFKA_LOG_RETENTION_MS: 3600000
       KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_SUPER_USERS: User:landau;User:kafka-1;User:kafka-2;User:kafka-3
 
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -44,55 +45,6 @@ services:
         limits:
           cpus: "2"
           memory: 4gb
-
-
-  # kafka-1:
-  #   image: confluentinc/cp-server:7.1.1-1-ubi8
-  #   restart: always
-  #   container_name: kafka-1
-  #   hostname: kafka-1
-  #   ports:
-  #     - "19092:19092"
-  #     - "19093:19093"      
-  #   networks:
-  #     - test-confluent
-  #   volumes:
-  #     - test-data-kafka-1:/var/lib/kafka/data
-  #     - ./creds/brokers/kafka-1:/etc/kafka/secrets
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "100m"
-  #       max-file: 5
-  #   environment:
-  #     KAFKA_BROKER_ID: 101
-  #     KAFKA_ZOOKEEPER_CONNECT: zk-1:12181
-  #     KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-  #     KAFKA_DELETE_TOPIC_ENABLE: "true"
-  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-  #     KAFKA_LOG_RETENTION_MS: 3600000
-  #     KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
-  #     #KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
-  #     #CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
-  #     #KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:19092,BROKER://0.0.0.0:9092
-  #     #KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:19092,BROKER://kafka-1:9092
-  #     KAFKA_LISTENERS: SSL://0.0.0.0:19093,BROKER://0.0.0.0:9092
-  #     KAFKA_ADVERTISED_LISTENERS: SSL://13.49.128.80:19093,BROKER://kafka-1:9092
-  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: SSL:SSL,BROKER:SSL
-  #     KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
-  #     KAFKA_SSL_KEYSTORE_FILENAME: kafka.keystore.pkcs12
-  #     KAFKA_SSL_KEYSTORE_CREDENTIALS: keystore_creds
-  #     KAFKA_SSL_KEY_CREDENTIALS: sslkey_creds
-  #     KAFKA_SSL_TRUSTSTORE_FILENAME: kafka.truststore.jks
-  #     KAFKA_SSL_TRUSTSTORE_CREDENTIALS: keystore_creds
-  #     KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
-  #     KAFKA_SSL_PRINCIPAL_MAPPING_RULES: "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$$/$$1/L,DEFAULT"
-  #     KAFKA_SSL_CLIENT_AUTH: "required"
-  #     KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
-  #     KAFKA_SUPER_USERS: User:landau;User:kafka;User:CN=kafka-1,L=MountainView,O=CONFLUENT,C=US;User:CN=kafka-2,L=MountainView,O=CONFLUENT,C=US;User:CN=kafka-3,L=MountainView,O=CONFLUENT,C=US
-  #     # KAFKA_LOG4J_LOGGERS: "kafka.authorizer.logger=DEBUG, stdout"
-  #     # KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-
 
 volumes:
   kafka-1:
