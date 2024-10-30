@@ -47,7 +47,7 @@ shopt -s nullglob
 set -e
 group_creds_dir="creds/groups"
 
-for (( i=1; i<="$1"; i++ ))
+for (( i=0; i<"$1"; i++ ))
 do
     group_name="group${i}"
 	echo "------------------------------- $group_name -------------------------------"

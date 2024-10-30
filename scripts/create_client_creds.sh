@@ -47,7 +47,7 @@ shopt -s nullglob
 set -e
 client_creds_dir="creds/clients"
 
-for (( i=1; i<="$1"; i++ ))
+for (( i=0; i<"$1"; i++ ))
 do
     client_name="client${i}"
 	echo "------------------------------- $client_name -------------------------------"

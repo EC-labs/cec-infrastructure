@@ -20,7 +20,7 @@ EOF
 make_client_props () {
     cat << EOF > "$2"
 security.protocol = SSL
-ssl.truststore.location=creds/admins/$1/kafka.truststore.jks
+ssl.truststore.location=creds/admins/$1/kafka.truststore.pkcs12
 ssl.truststore.password=cc2023
 ssl.keystore.location=creds/admins/$1/kafka.keystore.pkcs12
 ssl.keystore.password=cc2023
@@ -38,6 +38,7 @@ do
 
     make_cnf $i ${admin_dir}/${i}.cnf
     make_client_props $i ${admin_dir}/client-ssl.properties
+    cp ca/ca.crt ${admin_dir}/
 
     # Create server key & certificate signing request(.csr file)
     openssl req -new \
@@ -77,7 +78,12 @@ do
     -noprompt \
     -srcstorepass cc2023
 
-    keytool -keystore ${admin_dir}/kafka.truststore.jks \
+    keytool -keystore ${admin_dir}/kafka.truststore.pkcs12 \
     -alias CARoot \
-    -importcert -file ca/ca.crt -noprompt -storepass cc2023
+    -importcert -file ca/ca.crt \
+    -noprompt \
+    -storepass cc2023 \
+    -deststoretype PKCS12
+
+    rm "${admin_dir}/${i}".*
 done
