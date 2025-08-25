@@ -4,7 +4,7 @@
 set -e
 
 clients=($(find creds/clients -maxdepth 1 -mindepth 1 -type d -printf '%f\n'))
-CLUSTER_ENDPOINT=13.60.146.188:19093
+CLUSTER_ENDPOINT=kafka1.dlandau.nl:19092
 
 for client in "${clients[@]}"; do
     echo
