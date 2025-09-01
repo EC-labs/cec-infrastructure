@@ -8,9 +8,15 @@
         pkgs = nixpkgs.legacyPackages.${system};
     in
     {
-        devShells = 
+        devShells.${system} = 
             {
-                ${system}.default = pkgs.callPackage (import ./shell.nix) {};
+                default = pkgs.callPackage (import ./shell.nix) {};
+                creds-server = pkgs.mkShell {
+                    packages = with pkgs; [
+                        nodejs
+                        yarn
+                    ];
+                };
             };
     };
 }
