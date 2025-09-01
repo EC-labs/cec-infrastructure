@@ -11,10 +11,19 @@
         devShells.${system} = 
             {
                 default = pkgs.callPackage (import ./shell.nix) {};
-                creds-server = pkgs.mkShell {
+                frontend = pkgs.mkShell {
                     packages = with pkgs; [
                         nodejs
                         yarn
+                    ];
+                };
+                backend = pkgs.mkShell {
+                    packages = with pkgs; [
+                        cargo
+                        rustc
+                        rust-analyzer
+                        sqlite
+                        pkg-config
                     ];
                 };
             };
