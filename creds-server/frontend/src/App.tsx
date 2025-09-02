@@ -12,7 +12,7 @@ function App() {
     const navigate = useNavigate();
     
     useEffect(() => {
-        fetch("/api/users")  
+        fetch("/api/user")  
             .then((res) => {
                 if (!res.ok) {
                     throw new Error(`Request status not OK: ${res.status}`);

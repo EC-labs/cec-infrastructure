@@ -15,13 +15,11 @@ use serde::{Deserialize, Serialize};
 mod jwt;
 mod sql;
 
-// the input to our `create_user` handler
 #[derive(Deserialize)]
 struct CreateUser {
     email: String,
 }
 
-// the output to our `create_user` handler
 #[derive(Serialize, Debug)]
 struct User {
     email: String,
@@ -54,6 +52,47 @@ async fn authenticate(jar: CookieJar, query: Query<Token>) -> Result<(CookieJar,
     }
 }
 
+type Users = Vec<User>;
+
+async fn get_users(
+    State(pool): State<Pool<SqliteConnectionManager>>,
+    jar: CookieJar,
+) -> Result<(StatusCode, Json<Users>), StatusCode> {
+    let token = jar.get("token").ok_or(StatusCode::NOT_FOUND)?;
+    let email = match jwt::decode(token.value()) {
+        Ok(token_data) => {
+            let role = token_data.claims.role;
+            if role != "admin" {
+                info!("Attempting to create user with role {role}");
+                return Err(StatusCode::UNAUTHORIZED);
+            }
+        }, 
+        Err(_) => {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    };
+
+    let conn = pool.get().unwrap(); 
+    let mut query = conn
+        .prepare("
+            SELECT email, client_id, group_id, role FROM user;
+        ")
+        .unwrap();
+    let users: Vec<User> = query.query_map([], |row| {
+            Ok(User {
+                email: row.get::<usize, String>(0).unwrap(),
+                client: row.get::<usize, u64>(1).unwrap(),
+                group: row.get::<usize, Option<u64>>(2).unwrap(),
+                role: row.get::<usize, String>(3).unwrap(),
+            })
+        })
+        .unwrap()
+        .map(|user| user.unwrap())
+        .collect();
+
+    return Ok((StatusCode::OK, Json(users)))
+}
+
 async fn get_user(
     State(pool): State<Pool<SqliteConnectionManager>>,
     jar: CookieJar,
@@ -83,14 +122,13 @@ async fn get_user(
         }).expect(&format!("User `{}` missing from db", email));
 
     return Ok((StatusCode::OK, Json(user)))
-     
 }
 
 async fn create_user(
     State(pool): State<Pool<SqliteConnectionManager>>,
     jar: CookieJar,
     Json(payload): Json<CreateUser>,
-) -> Result<(StatusCode, Json<Value>), StatusCode> {
+) -> Result<(StatusCode, Json<User>), StatusCode> {
     let token = jar.get("token").ok_or(StatusCode::UNAUTHORIZED)?;
     let email = match jwt::decode(token.value()) {
         Ok(token_data) => {
@@ -124,7 +162,8 @@ async fn create_user(
     
     let claims = Claims::new(email, String::from("student"));
     let student_token = jwt::encode(&claims).unwrap();
-    Ok((StatusCode::CREATED, Json(json!(student_token))))
+    
+    Ok((StatusCode::CREATED, Json(user)))
 }
 
 #[tokio::main]
@@ -137,7 +176,8 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/api/users", post(create_user))
-        .route("/api/users", get(get_user))
+        .route("/api/users", get(get_users))
+        .route("/api/user", get(get_user))
         .route("/api/authenticate", get(authenticate))
         .with_state(pool);
 
