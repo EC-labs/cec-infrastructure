@@ -1,12 +1,12 @@
 import { useContext } from "react";
 import { AuthContext } from "./AuthContext";
 import { Admin } from "./Admin";
-import { Student } from "./Student";
+import { Files } from "./Files";
 
 export function Home() {
-    const { user: { email, role } } = useContext(AuthContext);
+    const { user: { role } } = useContext(AuthContext);
 
     return (<>
-        {role === "admin" ? <Admin/> : <Student/>}
+        {role === "admin" ? <Admin/> : <Files/>}
     </>)
 }

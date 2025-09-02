@@ -25,6 +25,7 @@
                         sqlite
                         pkg-config
                     ];
+                    CREDENTIALS_DIR = "/home/landaudiogo/Repos/teaching/cec/cec-infrastructure/creds";
                 };
             };
     };

@@ -4,6 +4,7 @@ import { Home } from './Home.tsx';
 import { AuthContext } from './AuthContext.tsx';
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { Files } from "./Files";
 
 function App() {
     const [user, setUser] = useState({email: "", role: ""});
@@ -35,7 +36,8 @@ function App() {
         {authenticated && 
             <Routes>
                 <Route path='/' element={<Home/>}/> 
-                <Route path='*' element={<Login/>}/> 
+                <Route path='/files' element={<Files/>}/> 
+                <Route path='*' element={<Home/>}/> 
             </Routes>
         }
         </AuthContext.Provider>

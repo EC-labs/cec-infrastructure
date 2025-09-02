@@ -9,7 +9,7 @@ use axum_extra::extract::cookie::{CookieJar, Cookie};
 use axum::{
     extract::{Query, State}, http::StatusCode, routing::{get, post}, Json, Router
 };
-use std::sync::Arc;
+use std::{env, fs, path::Path, sync::Arc};
 use serde::{Deserialize, Serialize};
 
 mod jwt;
@@ -124,6 +124,63 @@ async fn get_user(
     return Ok((StatusCode::OK, Json(user)))
 }
 
+type Files = Vec<String>;
+
+async fn get_files(
+    State(pool): State<Pool<SqliteConnectionManager>>,
+    jar: CookieJar,
+) -> Result<(StatusCode, Json<Files>), StatusCode> {
+    let token = jar.get("token").ok_or(StatusCode::NOT_FOUND)?;
+    let email = match jwt::decode(token.value()) {
+        Ok(token_data) => {
+            token_data.claims.user
+        }, 
+        Err(_) => {
+            return Err(StatusCode::NOT_FOUND);
+        }
+    };
+
+    let conn = pool.get().unwrap(); 
+    let user = conn
+        .prepare("
+            SELECT email, client_id, group_id, role FROM user WHERE email = ?;
+        ").unwrap()
+        .query_row(params![email], |row| {
+            Ok(User {
+                email: row.get::<usize, String>(0).unwrap(),
+                client: row.get::<usize, u64>(1).unwrap(),
+                group: row.get::<usize, Option<u64>>(2).unwrap(),
+                role: row.get::<usize, String>(3).unwrap(),
+            })
+        }).expect(&format!("User `{}` missing from db", email));
+
+    let mut files = Vec::new();
+
+    let credentials_dir = env::var("CREDENTIALS_DIR").expect("CREDENTIALS_DIR unset");
+    let client_suffix = format!("clients/client{}", user.client);
+    let client_dir = Path::new(&credentials_dir).join(&client_suffix);
+    files.push(client_suffix);
+    for entry in fs::read_dir(client_dir).unwrap().into_iter().map(|entry| entry.unwrap()) {
+
+        let file = format!("clients/{}/{}", entry.path().parent().unwrap().file_stem().unwrap().to_str().unwrap(), entry.path().file_stem().unwrap().to_str().unwrap());
+        files.push(file);
+    }
+
+    let Some(group) = user.group else {
+        return Ok((StatusCode::OK, Json(files)));
+    };
+    let group_suffix = format!("groups/group{}", group);
+    let group_dir = Path::new(&credentials_dir).join(&group_suffix);
+    files.push(group_suffix);
+    for entry in fs::read_dir(group_dir).unwrap().into_iter().map(|entry| entry.unwrap()) {
+
+        let file = format!("groups/{}/{}", entry.path().parent().unwrap().file_stem().unwrap().to_str().unwrap(), entry.path().file_stem().unwrap().to_str().unwrap());
+        files.push(file);
+    }
+
+    Ok((StatusCode::OK, Json(files)))
+}
+
 async fn create_user(
     State(pool): State<Pool<SqliteConnectionManager>>,
     jar: CookieJar,
@@ -179,6 +236,7 @@ async fn main() -> Result<()> {
         .route("/api/users", get(get_users))
         .route("/api/user", get(get_user))
         .route("/api/authenticate", get(authenticate))
+        .route("/api/files", get(get_files))
         .with_state(pool);
 
     let bind_address = "[::1]:3000";
