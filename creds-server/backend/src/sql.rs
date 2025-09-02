@@ -9,7 +9,8 @@ pub fn init_sql(pool: Pool<SqliteConnectionManager>) -> Result<()> {
             CREATE TABLE IF NOT EXISTS user (
                 client_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
-                group_id INTEGER
+                group_id INTEGER,
+                role TEXT NOT NULL
             );
             ",
         )?;

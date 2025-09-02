@@ -1,10 +1,12 @@
-import { useContext } from "react"
-import { AuthContext } from "./AuthContext"
+import { useContext } from "react";
+import { AuthContext } from "./AuthContext";
+import { Admin } from "./Admin";
+import { Student } from "./Student";
 
 export function Home() {
+    const { user: { email, role } } = useContext(AuthContext);
 
-    const { user } = useContext(AuthContext);
-    return (
-        <h1>Hello {user}</h1>
-    )
+    return (<>
+        {role === "admin" ? <Admin/> : <Student/>}
+    </>)
 }

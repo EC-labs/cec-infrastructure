@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { jwtDecode } from 'jwt-decode';
 import { AuthContext } from './AuthContext';
 import { useNavigate } from "react-router";
@@ -9,35 +9,39 @@ type JWTPayload = {
 };
 
 export function Login() {
-    const [input, setInput] = useState("");
+    const [token, setToken] = useState("");
+    const [login, setLogin] = useState(false);
     const [placeholder, setPlaceholder] = useState("token");
     const { setUser } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-        console.log(e.target.value);
-        setInput(e.target.value);
-    }
-
-    function onLogin(_e: React.MouseEvent<HTMLElement>) {
-        try {
-            const payload = jwtDecode<JWTPayload>(input);
-            // validate token w/ backend
-            // store user as http cookie
-            // setUser
-            // navigate("/");
-        } catch {
-            setInput("");
-            setPlaceholder("invalid token");
+    useEffect(() => {
+        if (login) {
+            fetch(`/api/authenticate?token=${token}`)
+                .then(res => {
+                    if (res.status == 200) {
+                        const payload = jwtDecode<JWTPayload>(token);
+                        setUser({email: payload.user, role: payload.role});
+                        navigate("/")
+                    } else {
+                        setToken("");
+                        setPlaceholder("invalid token");
+                    }
+                });
+            setLogin(false)
         }
+    }, [login]);
+
+    function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+        setToken(e.target.value);
     }
 
     return (
         <>
             <h1>Login</h1>
             <div>
-                <input type="password" value={input} placeholder={placeholder} onChange={handleInputChange}/>
-                <button onClick={onLogin}>login</button>
+                <input type="password" value={token} placeholder={placeholder} onChange={handleInputChange}/>
+                <button onClick={(_) => setLogin(true)}>login</button>
             </div>
         </>
     );

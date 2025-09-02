@@ -23,10 +23,11 @@ struct CreateUser {
 
 // the output to our `create_user` handler
 #[derive(Serialize, Debug)]
-struct Student {
+struct User {
     email: String,
     client: u64,
     group: Option<u64>,
+    role: String,
 }
 
 #[derive(Deserialize)]
@@ -38,7 +39,11 @@ async fn authenticate(jar: CookieJar, query: Query<Token>) -> Result<(CookieJar,
     match jwt::decode(&query.token) {
         Ok(_) => {
             Ok((
-                jar.add(Cookie::new("token", query.token.clone())),
+                jar.add(
+                    Cookie::build(("token", query.token.clone()))
+                        .http_only(true)
+                )
+                ,
                 StatusCode::OK,
             ))
         },
@@ -47,6 +52,38 @@ async fn authenticate(jar: CookieJar, query: Query<Token>) -> Result<(CookieJar,
             Err(StatusCode::UNAUTHORIZED)
         }
     }
+}
+
+async fn get_user(
+    State(pool): State<Pool<SqliteConnectionManager>>,
+    jar: CookieJar,
+) -> Result<(StatusCode, Json<User>), StatusCode> {
+    let token = jar.get("token").ok_or(StatusCode::NOT_FOUND)?;
+    let email = match jwt::decode(token.value()) {
+        Ok(token_data) => {
+            token_data.claims.user
+        }, 
+        Err(_) => {
+            return Err(StatusCode::NOT_FOUND);
+        }
+    };
+
+    let conn = pool.get().unwrap(); 
+    let user = conn
+        .prepare("
+            SELECT email, client_id, group_id, role FROM user WHERE email = ?;
+        ").unwrap()
+        .query_row(params![email], |row| {
+            Ok(User {
+                email: row.get::<usize, String>(0).unwrap(),
+                client: row.get::<usize, u64>(1).unwrap(),
+                group: row.get::<usize, Option<u64>>(2).unwrap(),
+                role: row.get::<usize, String>(3).unwrap(),
+            })
+        }).expect(&format!("User `{}` missing from db", email));
+
+    return Ok((StatusCode::OK, Json(user)))
+     
 }
 
 async fn create_user(
@@ -72,14 +109,15 @@ async fn create_user(
     let conn = pool.get().unwrap(); 
     let user = conn
         .prepare("
-            INSERT INTO user(email) VALUES (?)
-            RETURNING email, client_id, group_id 
+            INSERT INTO user(email, role) VALUES (?, ?)
+            RETURNING email, client_id, group_id, role
         ").unwrap()
-        .query_row(params![email], |row| {
-            Ok(Student {
+        .query_row(params![email, "student"], |row| {
+            Ok(User {
                 email: row.get::<usize, String>(0).unwrap(),
                 client: row.get::<usize, u64>(1).unwrap(),
                 group: row.get::<usize, Option<u64>>(2).unwrap(),
+                role: row.get::<usize, String>(3).unwrap(),
             })
         })
         .map_err(|e| StatusCode::FORBIDDEN)?;
@@ -99,6 +137,7 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/api/users", post(create_user))
+        .route("/api/users", get(get_user))
         .route("/api/authenticate", get(authenticate))
         .with_state(pool);
 
