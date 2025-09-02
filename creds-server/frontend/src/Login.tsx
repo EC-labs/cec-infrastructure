@@ -3,6 +3,10 @@ import { jwtDecode } from 'jwt-decode';
 import { AuthContext } from './AuthContext';
 import { useNavigate } from "react-router";
 
+import TextField from '@mui/material/TextField';
+
+import './login.css';
+
 type JWTPayload = {
     role: string,
     user: string,
@@ -11,7 +15,6 @@ type JWTPayload = {
 export function Login() {
     const [token, setToken] = useState("");
     const [login, setLogin] = useState(false);
-    const [placeholder, setPlaceholder] = useState("token");
     const { setUser } = useContext(AuthContext);
     const navigate = useNavigate();
 
@@ -25,7 +28,6 @@ export function Login() {
                         navigate("/")
                     } else {
                         setToken("");
-                        setPlaceholder("invalid token");
                     }
                 });
             setLogin(false)
@@ -37,12 +39,20 @@ export function Login() {
     }
 
     return (
-        <>
-            <h1>Login</h1>
-            <div>
-                <input type="password" value={token} placeholder={placeholder} onChange={handleInputChange}/>
-                <button onClick={(_) => setLogin(true)}>login</button>
+        <div className="login-page">
+            <div className="login-container">
+                <h1>INFOMCEC</h1>
+                <div className="login-control">
+                <TextField 
+                    id="outlined-basic" 
+                    label="token" 
+                    type="password"
+                    variant="outlined" 
+                    onChange={handleInputChange}
+                />
+                <button className='login-button' onClick={(_) => setLogin(true)}>login</button>
+                </div>
             </div>
-        </>
+        </div>
     );
 }
