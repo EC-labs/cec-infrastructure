@@ -1,4 +1,5 @@
 use anyhow::Result;
+use jwt::Claims;
 use r2d2::Pool;
 use r2d2_sqlite::{rusqlite::params, SqliteConnectionManager};
 use serde_json::{json, Value};
@@ -52,7 +53,7 @@ async fn create_user(
     State(pool): State<Pool<SqliteConnectionManager>>,
     jar: CookieJar,
     Json(payload): Json<CreateUser>,
-) -> Result<StatusCode, StatusCode> {
+) -> Result<(StatusCode, Json<Value>), StatusCode> {
     let token = jar.get("token").ok_or(StatusCode::UNAUTHORIZED)?;
     let email = match jwt::decode(token.value()) {
         Ok(token_data) => {
@@ -75,7 +76,6 @@ async fn create_user(
             RETURNING email, client_id, group_id 
         ").unwrap()
         .query_row(params![email], |row| {
-            println!("{:?}",  row.get::<usize, String>(0));
             Ok(Student {
                 email: row.get::<usize, String>(0).unwrap(),
                 client: row.get::<usize, u64>(1).unwrap(),
@@ -84,14 +84,9 @@ async fn create_user(
         })
         .map_err(|e| StatusCode::FORBIDDEN)?;
     
-    println!("{:?}", user);
-    // let user = User {
-    //     email,
-    //     client: None,
-    //     group: None,
-    // };
-
-    Ok(StatusCode::CREATED)
+    let claims = Claims::new(email, String::from("student"));
+    let student_token = jwt::encode(&claims).unwrap();
+    Ok((StatusCode::CREATED, Json(json!(student_token))))
 }
 
 #[tokio::main]
