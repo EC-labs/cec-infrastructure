@@ -20,3 +20,4 @@ jsonwebtoken = "9.3.1"
 axum-extra = { version = "0.10.1", features = ["cookie"]}
 r2d2_sqlite = "0.31.0"
 r2d2 = "0.8.10"
+tokio-util = { version = "0.7.16", features = [ "io" ]}

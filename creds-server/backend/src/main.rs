@@ -7,10 +7,11 @@ use tokio;
 use tracing::{info, Level};
 use axum_extra::extract::cookie::{CookieJar, Cookie};
 use axum::{
-    extract::{Query, State}, http::StatusCode, routing::{get, post}, Json, Router
+    body::Body, extract::{Query, RawPathParams, State}, http::{header, StatusCode}, response::{IntoResponse, Response}, routing::{get, post}, Json, Router
 };
 use std::{env, fs, path::Path, sync::Arc};
 use serde::{Deserialize, Serialize};
+use tokio_util::io::ReaderStream;
 
 mod jwt;
 mod sql;
@@ -223,6 +224,80 @@ async fn create_user(
     Ok((StatusCode::CREATED, Json(user)))
 }
 
+async fn download_file(
+    State(pool): State<Pool<SqliteConnectionManager>>,
+    jar: CookieJar, 
+    params: RawPathParams
+) -> impl IntoResponse {
+    let requested_file = match params.iter().filter(|(key, _)| *key == "file").map(|(_, v)| v).next() {
+        Some(file) => file,
+        None => return Err(StatusCode::NOT_FOUND)
+    };
+
+    let token = jar.get("token").ok_or(StatusCode::NOT_FOUND)?;
+    let email = match jwt::decode(token.value()) {
+        Ok(token_data) => {
+            token_data.claims.user
+        }, 
+        Err(_) => {
+            return Err(StatusCode::NOT_FOUND);
+        }
+    };
+
+    let conn = pool.get().unwrap(); 
+    let user = conn
+        .prepare("
+            SELECT email, client_id, group_id, role FROM user WHERE email = ?;
+        ").unwrap()
+        .query_row(params![email], |row| {
+            Ok(User {
+                email: row.get::<usize, String>(0).unwrap(),
+                client: row.get::<usize, u64>(1).unwrap(),
+                group: row.get::<usize, Option<u64>>(2).unwrap(),
+                role: row.get::<usize, String>(3).unwrap(),
+            })
+        }).expect(&format!("User `{}` missing from db", email));
+
+    let conn = pool.get().unwrap(); 
+
+    let mut valid_files = vec![format!("client{}.zip", user.client)];
+    if let Some(group) = user.group {
+        valid_files.push(format!("group{}.zip", group))
+    }
+
+    if !valid_files.iter().any(|v| v==requested_file) {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    let credentials_dir = env::var("CREDENTIALS_DIR").expect("CREDENTIALS_DIR unset");
+    let mut file_path = Path::new(&credentials_dir).to_path_buf();
+    if requested_file.starts_with("client") {
+        file_path.push("clients")
+    } else {
+        file_path.push("groups")
+    };
+    file_path.push(requested_file);
+    println!("{:?}", file_path);
+
+    let file = match tokio::fs::File::open(file_path).await {
+        Ok(file) => file,
+        Err(err) => return Err(StatusCode::NOT_FOUND),
+    };
+
+    let stream = ReaderStream::new(file);
+    let body = Body::from_stream(stream);
+
+    let headers = [
+        (header::CONTENT_TYPE, String::from("application/zip")),
+        (
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{}\"", requested_file),
+        ),
+    ];
+
+    Ok((headers, body))
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
@@ -237,6 +312,7 @@ async fn main() -> Result<()> {
         .route("/api/user", get(get_user))
         .route("/api/authenticate", get(authenticate))
         .route("/api/files", get(get_files))
+        .route("/api/download/{file}", get(download_file))
         .with_state(pool);
 
     let bind_address = "[::1]:3000";
