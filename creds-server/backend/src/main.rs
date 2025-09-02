@@ -9,7 +9,7 @@ use axum_extra::extract::cookie::{CookieJar, Cookie};
 use axum::{
     body::Body, extract::{Query, RawPathParams, State}, http::{header, StatusCode}, response::{IntoResponse, Response}, routing::{get, post}, Json, Router
 };
-use std::{env, fs, path::Path, sync::Arc};
+use std::{collections::HashMap, env, fs, path::Path, sync::Arc};
 use serde::{Deserialize, Serialize};
 use tokio_util::io::ReaderStream;
 
@@ -130,7 +130,7 @@ type Files = Vec<String>;
 async fn get_files(
     State(pool): State<Pool<SqliteConnectionManager>>,
     jar: CookieJar,
-) -> Result<(StatusCode, Json<Files>), StatusCode> {
+) -> Result<(StatusCode, Json<Value>), StatusCode> {
     let token = jar.get("token").ok_or(StatusCode::NOT_FOUND)?;
     let email = match jwt::decode(token.value()) {
         Ok(token_data) => {
@@ -155,31 +155,32 @@ async fn get_files(
             })
         }).expect(&format!("User `{}` missing from db", email));
 
-    let mut files = Vec::new();
-
     let credentials_dir = env::var("CREDENTIALS_DIR").expect("CREDENTIALS_DIR unset");
-    let client_suffix = format!("clients/client{}", user.client);
-    let client_dir = Path::new(&credentials_dir).join(&client_suffix);
-    files.push(client_suffix);
-    for entry in fs::read_dir(client_dir).unwrap().into_iter().map(|entry| entry.unwrap()) {
 
-        let file = format!("clients/{}/{}", entry.path().parent().unwrap().file_stem().unwrap().to_str().unwrap(), entry.path().file_stem().unwrap().to_str().unwrap());
-        files.push(file);
+    let mut body = serde_json::Map::new();
+    let client = format!("client{}", user.client);
+    let client_dir = Path::new(&credentials_dir).join("clients").join(&client);
+    let mut client_files = Vec::new();
+    for entry in fs::read_dir(client_dir).unwrap().into_iter().map(|entry| entry.unwrap()) {
+        let path = entry.path();
+        let stem = path.file_stem().unwrap().to_str().unwrap();
+        client_files.push(stem.into());
     }
+    body.insert(client, Value::Array(client_files));
 
     let Some(group) = user.group else {
-        return Ok((StatusCode::OK, Json(files)));
+        return Ok((StatusCode::OK, Json(Value::Object(body))));
     };
-    let group_suffix = format!("groups/group{}", group);
-    let group_dir = Path::new(&credentials_dir).join(&group_suffix);
-    files.push(group_suffix);
+    let group = format!("group{}", group);
+    let group_dir = Path::new(&credentials_dir).join("groups").join(&group);
+    let mut group_files = Vec::new();
     for entry in fs::read_dir(group_dir).unwrap().into_iter().map(|entry| entry.unwrap()) {
-
-        let file = format!("groups/{}/{}", entry.path().parent().unwrap().file_stem().unwrap().to_str().unwrap(), entry.path().file_stem().unwrap().to_str().unwrap());
-        files.push(file);
+        let path = entry.path();
+        let stem = path.file_stem().unwrap().to_str().unwrap();
+        group_files.push(stem.into());
     }
-
-    Ok((StatusCode::OK, Json(files)))
+    body.insert(group, Value::Array(group_files));
+    Ok((StatusCode::OK, Json(Value::Object(body))))
 }
 
 async fn create_user(
@@ -277,7 +278,6 @@ async fn download_file(
         file_path.push("groups")
     };
     file_path.push(requested_file);
-    println!("{:?}", file_path);
 
     let file = match tokio::fs::File::open(file_path).await {
         Ok(file) => file,
