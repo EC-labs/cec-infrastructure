@@ -285,7 +285,9 @@ async fn create_user(
     let conn = pool.get().unwrap(); 
     let user = conn
         .prepare("
-            INSERT INTO user(email, role) VALUES (?, ?)
+            INSERT INTO user(client_id, email, role) 
+            SELECT MAX(client_id) + 1, ?, ?
+            FROM user
             RETURNING email, client_id, group_id, role
         ").unwrap()
         .query_row(params![email, "student"], |row| {
