@@ -1,6 +1,6 @@
 use jsonwebtoken::{self, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{env, time::{SystemTime, UNIX_EPOCH}};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Claims {
@@ -28,18 +28,20 @@ impl Claims {
 
 #[allow(dead_code)]
 pub fn encode(claims: &Claims) -> Result<String, jsonwebtoken::errors::Error> {
+    let secret = env::var("JWT_SECRET").unwrap();
     jsonwebtoken::encode(
         &Header::new(Algorithm::HS256),
         claims,
-        &EncodingKey::from_secret("terrible secret".as_ref()),
+        &EncodingKey::from_secret(secret.as_ref()),
     )
 }
 
 #[allow(dead_code)]
 pub fn decode(token: &str) -> Result<TokenData<Claims>, jsonwebtoken::errors::Error> {
+    let secret = env::var("JWT_SECRET").unwrap();
     jsonwebtoken::decode::<Claims>(
         &token,
-        &DecodingKey::from_secret("terrible secret".as_ref()),
+        &DecodingKey::from_secret(secret.as_ref()),
         &Validation::new(Algorithm::HS256),
     )
 }

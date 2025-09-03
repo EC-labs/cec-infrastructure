@@ -27,6 +27,7 @@
                         openssl
                     ];
                     CREDENTIALS_DIR = "/home/landaudiogo/Repos/teaching/cec/cec-infrastructure/creds";
+                    JWT_SECRET = "terrible secret";
                 };
             };
     };
