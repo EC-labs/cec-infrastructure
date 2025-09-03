@@ -1,3 +1,4 @@
+use indoc::{formatdoc, indoc};
 use anyhow::Result;
 use jwt::Claims;
 use r2d2::Pool;
@@ -9,9 +10,13 @@ use axum_extra::extract::cookie::{CookieJar, Cookie};
 use axum::{
     body::Body, extract::{Query, RawPathParams, State}, http::{header, StatusCode}, response::{IntoResponse, Response}, routing::{get, post}, Json, Router
 };
-use std::{collections::HashMap, env, fs, path::Path, sync::Arc};
+use axum_macros::debug_handler;
+use std::{collections::HashMap, env, fs::{self, File}, path::Path, sync::Arc};
 use serde::{Deserialize, Serialize};
 use tokio_util::io::ReaderStream;
+
+use sendgrid::error::SendgridError;
+use sendgrid::v3::*;
 
 mod jwt;
 mod sql;
@@ -33,6 +38,7 @@ struct User {
 struct Token {
     token: String,
 }
+
 
 async fn authenticate(jar: CookieJar, query: Query<Token>) -> Result<(CookieJar, StatusCode), StatusCode> {
     match jwt::decode(&query.token) {
@@ -183,6 +189,79 @@ async fn get_files(
     Ok((StatusCode::OK, Json(Value::Object(body))))
 }
 
+async fn sendgrid_email(to_email: &str, token: &str) -> Result<()> {
+    let p = Personalization::new(Email::new(to_email));
+    info!("send email to {to_email}");
+
+    let content = formatdoc!(r#"
+        visit <a href="https://cec-creds.ad.dlandau.nl/login">https://cec-creds.ad.dlandau.nl/login</a> and paste the following token: 
+        {}
+    "#, token);
+    let m = Message::new(Email::new("noreply-infomcec@dlandau.nl"))
+        .set_subject("[INFOMCEC] Credentials")
+        .add_content(
+            Content::new()
+                .set_content_type("text/html")
+                .set_value(content),
+        )
+        .add_personalization(p);
+
+    let mut api_key = env::var("SG_API_KEY").expect("Missing SG_API_KEY");
+    let sender = Sender::new(api_key, None);
+    sender.send(&m).await?;
+    
+    Ok(())
+}
+
+#[debug_handler]
+async fn send_email(
+    State(pool): State<Pool<SqliteConnectionManager>>,
+    jar: CookieJar,
+    params: RawPathParams,
+) -> Result<StatusCode, StatusCode> {
+    let token = jar.get("token").ok_or(StatusCode::UNAUTHORIZED)?;
+    match jwt::decode(token.value()) {
+        Ok(token_data) => {
+            let role = token_data.claims.role;
+            if role != "admin" {
+                info!("Attempting to create user with role {role}");
+                return Err(StatusCode::UNAUTHORIZED);
+            }
+        }, 
+        Err(_) => {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    };
+
+    let user_email = match params.iter().filter(|(key, _)| *key == "email").map(|(_, v)| v).next() {
+        Some(email) => email,
+        None => return Err(StatusCode::NOT_FOUND)
+    };
+    let conn = pool.get().unwrap(); 
+    let user = conn
+        .prepare("
+            SELECT email, client_id, group_id, role FROM user WHERE email = ?;
+        ").unwrap()
+        .query_row(params![user_email], |row| {
+            Ok(User {
+                email: row.get::<usize, String>(0).unwrap(),
+                client: row.get::<usize, u64>(1).unwrap(),
+                group: row.get::<usize, Option<u64>>(2).unwrap(),
+                role: row.get::<usize, String>(3).unwrap(),
+            })
+        }).expect(&format!("User `{}` missing from db", user_email));
+    
+    let claims = Claims::new(user.email.clone(), user.role);
+    let student_token = jwt::encode(&claims).unwrap();
+
+    if let Err(err) = sendgrid_email(&user.email, &student_token).await {
+        eprintln!("Sendgrid error: {:?}", err);
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+    
+    Ok(StatusCode::OK)
+}
+
 async fn create_user(
     State(pool): State<Pool<SqliteConnectionManager>>,
     jar: CookieJar,
@@ -218,9 +297,6 @@ async fn create_user(
             })
         })
         .map_err(|e| StatusCode::FORBIDDEN)?;
-    
-    let claims = Claims::new(email, String::from("student"));
-    let student_token = jwt::encode(&claims).unwrap();
     
     Ok((StatusCode::CREATED, Json(user)))
 }
@@ -298,18 +374,38 @@ async fn download_file(
     Ok((headers, body))
 }
 
+async fn send_admin_token() -> Result<()> {
+    let token_check = Path::new("./data/token_sent");
+    if token_check.exists() {
+        return Ok(())
+    }
+
+    info!("send admin token");
+    let claims = Claims::new(String::from("d.landau@uu.nl"), String::from("admin"));
+    let admin_token = jwt::encode(&claims)?;
+    sendgrid_email(&claims.user, &admin_token).await?;
+    fs::create_dir_all(token_check.parent().unwrap());
+    File::create(token_check);
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
-    let manager = SqliteConnectionManager::file("db.sqlite");
+    let db = Path::new("./data/db.sqlite");
+    fs::create_dir_all(db.parent().unwrap());
+    let manager = SqliteConnectionManager::file(db);
     let pool = r2d2::Pool::new(manager).unwrap();
     sql::init_sql(pool.clone())?;
+    send_admin_token().await;
 
     let app = Router::new()
         .route("/api/users", post(create_user))
         .route("/api/users", get(get_users))
         .route("/api/user", get(get_user))
+        .route("/api/user/{email}/send_email", post(send_email))
         .route("/api/authenticate", get(authenticate))
         .route("/api/files", get(get_files))
         .route("/api/download/{file}", get(download_file))

@@ -12,6 +12,7 @@ pub fn init_sql(pool: Pool<SqliteConnectionManager>) -> Result<()> {
                 group_id INTEGER,
                 role TEXT NOT NULL
             );
+            INSERT INTO user(email, role) VALUES ('d.landau@uu.nl', 'admin') ON CONFLICT DO NOTHING;
             ",
         )?;
     Ok(())
