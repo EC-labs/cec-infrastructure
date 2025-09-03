@@ -10,21 +10,6 @@ import SendIcon from '@mui/icons-material/Send';
 
 import './admin.css';
 
-function createData(
-  email: string,
-  role: string,
-  client: number,
-  group: number | undefined
-) {
-  return {email, role, client, group} as User;
-}
-
-const user_data = [
-  createData('d.landau@uu.nl', "admin", 0, undefined),
-  createData('n.saurabh@uu.nl', "admin", 1, undefined),
-  createData('student1@uu.nl', "student", 2, undefined),
-];
-
 type User = {
     email: string, 
     role: string,
@@ -40,7 +25,7 @@ export default function UserList(props: UserListProps) {
     const { users } = props;
     const [toEmail, setToEmail] = useState<undefined | string>(undefined);
 
-    useEffect((e) => {
+    useEffect(() => {
         if (!toEmail) 
             return;
         fetch(`/api/user/${toEmail}/send_email`, { method: "POST" })
@@ -57,7 +42,7 @@ export default function UserList(props: UserListProps) {
     }, [toEmail]);
 
     function sendEmail(email: string) {
-        return (e) => {
+        return () => {
             setToEmail(email);
         };
     }
@@ -94,7 +79,7 @@ export default function UserList(props: UserListProps) {
 }
 
 type AddUserProps = {
-    setUsers: React.Dispatch<React.SetStateAction<never[]>>
+    setUsers: React.Dispatch<React.SetStateAction<User[]>>
 };
 
 function AddUser(props: AddUserProps) {
@@ -156,7 +141,7 @@ function AddUser(props: AddUserProps) {
 }
 
 export function Admin() {
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState<User[]>([]);
 
     useEffect(() => {
         fetch("/api/users")

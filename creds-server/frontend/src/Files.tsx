@@ -1,11 +1,9 @@
-import { useContext, useEffect, useState } from "react";
-import { AuthContext } from "./AuthContext";
+import { useEffect, useState } from "react";
 import DownloadIcon from '@mui/icons-material/Download';
 
 import "./files.css";
 
 export function Files() {
-    const { user } = useContext(AuthContext);
     const [files, setFiles] = useState({});
     const [download, setDownload] = useState<undefined | string>(undefined);
 
@@ -59,8 +57,8 @@ export function Files() {
         setDownload(undefined);
     }, [download])
 
-    function onDownload(key) {
-        return (e) => {
+    function onDownload(key: string) {
+        return () => {
             setDownload(`${key}.zip`);
         }
     }
@@ -75,7 +73,8 @@ export function Files() {
                 </div>
             </div>
         );
-        for (const entry of entries) {
+        let stringEntries = entries as string[];
+        for (const entry of stringEntries) {
             fileElements.push(<p key={key + "-" + entry} style={{marginLeft: "25px"}}>{entry}</p>);
         }
         fileElements.push(<p key={key + "-"}/>)
