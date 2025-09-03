@@ -38,6 +38,12 @@ export function Login() {
         setToken(e.target.value);
     }
 
+    function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (e.key === "Enter") {
+            setLogin(true);
+        }
+    }
+
     return (
         <div className="login-page">
             <div className="login-container">
@@ -49,6 +55,7 @@ export function Login() {
                     type="password"
                     variant="outlined" 
                     onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
                 />
                 <button className='login-button' onClick={(_) => setLogin(true)}>login</button>
                 </div>

@@ -126,10 +126,17 @@ function AddUser(props: AddUserProps) {
             })
 
         setAdd(false);
+        setEmail("");
     }, [add])
 
     function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
         setEmail(e.target.value);
+    }
+
+    function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (e.key === "Enter") {
+            setAdd(true);
+        }
     }
 
     return (
@@ -140,6 +147,7 @@ function AddUser(props: AddUserProps) {
                 variant="outlined" 
                 value={email}
                 onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
             />
             <button className='add-button' onClick={() => setAdd(true)}>Add</button>
         </div> 
