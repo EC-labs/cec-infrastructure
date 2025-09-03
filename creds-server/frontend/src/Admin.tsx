@@ -6,6 +6,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
+import SendIcon from '@mui/icons-material/Send';
 
 import './admin.css';
 
@@ -37,32 +38,59 @@ type UserListProps = {
 
 export default function UserList(props: UserListProps) {
     const { users } = props;
-  return (
-    <TableContainer className="creds-table-container">
-      <Table sx={{ minWidth: "500px" }} aria-label="simple table">
-        <TableHead>
-          <TableRow>
-            <TableCell align="center">Email</TableCell>
-            <TableCell align="center">Role</TableCell>
-            <TableCell align="center">Client</TableCell>
-            <TableCell align="center">Group</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {users.map((user) => (
-            <TableRow
-              key={user.email}
-            >
-              <TableCell align="left">{user.email}</TableCell>
-              <TableCell align="left">{user.role}</TableCell>
-              <TableCell align="right">{user.client}</TableCell>
-              <TableCell align="right">{user.group}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
+    const [toEmail, setToEmail] = useState<undefined | string>(undefined);
+
+    useEffect((e) => {
+        if (!toEmail) 
+            return;
+        fetch(`/api/user/${toEmail}/send_email`, { method: "POST" })
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error(`Request status not OK: ${res.status}`);
+                }
+                setToEmail(undefined);
+                console.log(`emailed ${toEmail}`);
+            })
+            .catch((e) => {
+                console.log(e)
+            })
+    }, [toEmail]);
+
+    function sendEmail(email: string) {
+        return (e) => {
+            setToEmail(email);
+        };
+    }
+    return (
+        <TableContainer className="creds-table-container">
+            <Table sx={{ minWidth: "500px" }} aria-label="simple table">
+                <TableHead>
+                    <TableRow>
+                        <TableCell align="center">Email</TableCell>
+                        <TableCell align="center">Role</TableCell>
+                        <TableCell align="center">Client</TableCell>
+                        <TableCell align="center">Group</TableCell>
+                        <TableCell/>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {users.map((user) => (
+                        <TableRow
+                        key={user.email}
+                        >
+                            <TableCell align="left">{user.email}</TableCell>
+                            <TableCell align="left">{user.role}</TableCell>
+                            <TableCell align="right">{user.client}</TableCell>
+                            <TableCell align="right">{user.group}</TableCell>
+                            <TableCell align="center">
+                                <button className="send-button" onClick={sendEmail(user.email)}><SendIcon/></button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </TableContainer>
+    );
 }
 
 type AddUserProps = {

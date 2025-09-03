@@ -169,8 +169,8 @@ async fn get_files(
     let mut client_files = Vec::new();
     for entry in fs::read_dir(client_dir).unwrap().into_iter().map(|entry| entry.unwrap()) {
         let path = entry.path();
-        let stem = path.file_stem().unwrap().to_str().unwrap();
-        client_files.push(stem.into());
+        let file_name = path.file_name().unwrap().to_str().unwrap();
+        client_files.push(file_name.into());
     }
     body.insert(client, Value::Array(client_files));
 
@@ -182,8 +182,8 @@ async fn get_files(
     let mut group_files = Vec::new();
     for entry in fs::read_dir(group_dir).unwrap().into_iter().map(|entry| entry.unwrap()) {
         let path = entry.path();
-        let stem = path.file_stem().unwrap().to_str().unwrap();
-        group_files.push(stem.into());
+        let file_name = path.file_name().unwrap().to_str().unwrap();
+        group_files.push(file_name.into());
     }
     body.insert(group, Value::Array(group_files));
     Ok((StatusCode::OK, Json(Value::Object(body))))

@@ -8,7 +8,7 @@ import { Files } from "./Files";
 
 function App() {
     const [user, setUser] = useState({email: "", role: ""});
-    const [authenticated, setAuthenticated] = useState(false);
+    const [attemptAuth, setAttemptAuth] = useState(false);
     const value = {user, setUser};
     const navigate = useNavigate();
     
@@ -21,22 +21,23 @@ function App() {
                 return res.json();
             })
             .then((body) => {
-                setAuthenticated(true);
+                setAttemptAuth(true);
                 setUser({email: body["email"], role: body["role"]})
             })
             .catch((_) => {
-                setAuthenticated(true);
+                setAttemptAuth(true);
                 navigate("/login");
             })
 
-    }, [authenticated])
+    }, [attemptAuth])
 
     return (
         <AuthContext.Provider value={value}>
-        {authenticated && 
+        {attemptAuth && 
             <Routes>
                 <Route path='/' element={<Home/>}/> 
                 <Route path='/files' element={<Files/>}/> 
+                <Route path='/login' element={<Login/>}/> 
                 <Route path='*' element={<Home/>}/> 
             </Routes>
         }
