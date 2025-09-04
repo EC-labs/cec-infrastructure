@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useState } from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -7,6 +7,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 import SendIcon from '@mui/icons-material/Send';
+import CheckIcon from '@mui/icons-material/Check';
 
 import './admin.css';
 
@@ -18,12 +19,17 @@ type User = {
 }
 
 type UserListProps = {
-    users: User[]
+    users: {
+        [key: string]: User;
+    };
+    setUsers: React.Dispatch<React.SetStateAction<{[key: string]: User}>>
 }
 
 export default function UserList(props: UserListProps) {
-    const { users } = props;
+    const { users, setUsers } = props;
     const [toEmail, setToEmail] = useState<undefined | string>(undefined);
+    const [editing, setEditing] = useState<{[key: string]: string}>({});
+    const [patchUser, setPatchUser] = useState<{email: string, group: number} | undefined>(undefined)
 
     useEffect(() => {
         if (!toEmail) 
@@ -41,11 +47,72 @@ export default function UserList(props: UserListProps) {
             })
     }, [toEmail]);
 
+    useEffect(() => {
+        if (!patchUser) 
+            return;
+        fetch(`/api/user`, { method: "PATCH", body: JSON.stringify(patchUser), headers: {"Content-Type": "application/json"} })
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error(`Request status not OK: ${res.status}`);
+                }
+                setPatchUser(undefined);
+                setUsers((users) => {
+                    let res = {...users};
+                    res[patchUser.email] = {...users[patchUser.email], group: patchUser.group};
+                    return res;
+                });
+                setEditing((editing) => {
+                    let res = {...editing};
+                    delete res[patchUser.email];
+                    return res;
+                });
+                setPatchUser(undefined);
+            })
+            .catch((e) => {
+                console.log(e)
+            })
+    }, [patchUser]);
+
     function sendEmail(email: string) {
         return () => {
             setToEmail(email);
         };
     }
+
+    function editGroup(email: string) {
+        return () => {
+            setEditing((editing) => {
+                let res = {...editing} 
+                res[email] = "";
+                return res;
+            })
+        };
+    }
+
+    function confirmEditing(email: string) {
+        return () => {
+            setPatchUser({email, group: Number(editing[email])});
+        };
+    }
+
+    function handleGroupValue(email: string) {
+        return (e: React.ChangeEvent<HTMLInputElement>) => {
+            setEditing((editing) => {
+                let res = {...editing};
+                if (e.target.value.length <= 2) {
+                    res[email] = e.target.value;
+                }
+                return res;
+            });
+        };
+    }
+
+    function validateNumber(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (!/[0-9]/.test(e.key) && (e.key !== "Backspace")) { 
+          e.preventDefault();
+        }
+    }
+
     return (
         <TableContainer className="creds-table-container">
             <Table sx={{ minWidth: "500px" }} aria-label="simple table">
@@ -59,17 +126,33 @@ export default function UserList(props: UserListProps) {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {users.map((user) => (
+                    {Object.values(users).sort((a,b) => a.client > b.client ? 1 : -1).map((user) => (
                         <TableRow
                         key={user.email}
                         >
                             <TableCell align="left">{user.email}</TableCell>
                             <TableCell align="left">{user.role}</TableCell>
                             <TableCell align="right">{user.client}</TableCell>
-                            <TableCell align="right">{user.group}</TableCell>
-                            <TableCell align="center">
-                                <button className="send-button" onClick={sendEmail(user.email)}><SendIcon/></button>
-                            </TableCell>
+                            {user.email in editing ?
+                                <TableCell align="right" onClick={editGroup(user.email)}>
+                                    <input 
+                                        autoFocus 
+                                        onKeyDown={validateNumber} 
+                                        onChange={handleGroupValue(user.email)} 
+                                        value={editing[user.email]}
+                                        className="group-input"
+                                    />
+                                </TableCell>:
+                                <TableCell align="right" onClick={editGroup(user.email)}>{user.group != null ? user.group : "-"}</TableCell>
+                            }
+                            {user.email in editing ?
+                                <TableCell align="center">
+                                    <button className="confirm-button" onClick={confirmEditing(user.email)}><CheckIcon/></button>
+                                </TableCell>:
+                                <TableCell align="center">
+                                    <button className="send-button" onClick={sendEmail(user.email)}><SendIcon/></button>
+                                </TableCell>
+                            }
                         </TableRow>
                     ))}
                 </TableBody>
@@ -79,7 +162,7 @@ export default function UserList(props: UserListProps) {
 }
 
 type AddUserProps = {
-    setUsers: React.Dispatch<React.SetStateAction<User[]>>
+    setUsers: React.Dispatch<React.SetStateAction<{[key: string]: User}>>
 };
 
 function AddUser(props: AddUserProps) {
@@ -104,7 +187,14 @@ function AddUser(props: AddUserProps) {
                 return res.json();
             })
             .then((body) => {
-                setUsers((users) => [...users, body])
+                setUsers((_users) => {
+                    let res: {[key: string]: User} = {};
+                    for (const elem of body) {
+                        let user = elem as User;
+                        res[user.email] = user;
+                    }
+                    return res;
+                });
             })
             .catch((e) => {
                 console.log(e)
@@ -141,7 +231,7 @@ function AddUser(props: AddUserProps) {
 }
 
 export function Admin() {
-    const [users, setUsers] = useState<User[]>([]);
+    const [users, setUsers] = useState<{[key: string]: User}>({});
 
     useEffect(() => {
         fetch("/api/users")
@@ -152,7 +242,12 @@ export function Admin() {
                 return res.json();
             })
             .then((body) => {
-                setUsers(body);
+                let res: {[key: string]: User} = {}
+                for (const elem of body) {
+                    let user = elem as User;
+                    res[user.email] = user;
+                }
+                setUsers(res);
             })
             .catch((e) => {
                 console.log(e)
@@ -162,7 +257,7 @@ export function Admin() {
     return (
         <div className="admin-page">
             <AddUser setUsers={setUsers}/>    
-            <UserList users={users}/>
+            <UserList users={users} setUsers={setUsers}/>
         </div>
     );
 }

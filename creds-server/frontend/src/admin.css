@@ -19,22 +19,6 @@
     margin-bottom: 16px;
 }
 
-
-.creds-table-button {
-    width: 40px;
-    height: 40px;
-    border-width: 1px; 
-    border-color: var(--neutral-3); 
-    font-weight: 550;
-    font-size: 14px;
-    color: var(--primary-2); 
-    background-color: var(--neutral-7);
-    box-shadow: rgba(100, 100, 111, 0.2) 0px 1px 3px 0px;
-}
-.creds-table-button:hover { 
-    background-color: var(--primary-6-5);
-}
-
 .add-user-container {
     padding: 10px;
     width: 400px;
@@ -49,3 +33,48 @@
     margin-bottom: 16px;
 }
 
+.group-input {
+    width: 30px;
+    text-align: right;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.send-button {
+    width: 40px;
+    height: 40px;
+    border-width: 1px; 
+    border-color: var(--neutral-3); 
+    font-weight: 550;
+    font-size: 14px;
+    color: var(--primary-2); 
+    background-color: var(--neutral-7);
+    box-shadow: rgba(100, 100, 111, 0.2) 0px 1px 3px 0px;
+}
+.send-button:hover { 
+    background-color: var(--primary-6-5);
+}
+.send-button:active { 
+    background-color: var(--neutral-7);
+}
+
+.confirm-button {
+    width: 40px;
+    height: 40px;
+    border-width: 1px; 
+    border-color: var(--accent-green-2); 
+    font-weight: 550;
+    font-size: 14px;
+    color: var(--accent-green-2); 
+    background-color: var(--accent-green-7);
+    box-shadow: rgba(100, 100, 111, 0.2) 0px 1px 3px 0px;
+}
+.confirm-button:hover { 
+    background-color: var(--accent-green-6);
+}
+.confirm-button:active { 
+    background-color: var(--accent-green-7);
+}

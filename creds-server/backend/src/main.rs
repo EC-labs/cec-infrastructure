@@ -8,7 +8,7 @@ use tokio;
 use tracing::{info, Level};
 use axum_extra::extract::cookie::{CookieJar, Cookie};
 use axum::{
-    body::Body, extract::{Query, RawPathParams, State}, http::{header, StatusCode}, response::{IntoResponse, Response}, routing::{get, post}, Json, Router
+    body::Body, extract::{Query, RawPathParams, State}, http::{header, StatusCode}, response::{IntoResponse, Response}, routing::{get, post, patch}, Json, Router
 };
 use axum_macros::debug_handler;
 use std::{collections::HashMap, env, fs::{self, File}, path::Path, sync::Arc};
@@ -262,6 +262,47 @@ async fn send_email(
     Ok(StatusCode::OK)
 }
 
+#[derive(Deserialize)]
+struct PatchUser {
+    email: String,
+    group: u64
+}
+
+async fn patch_user(
+    State(pool): State<Pool<SqliteConnectionManager>>,
+    jar: CookieJar,
+    Json(payload): Json<PatchUser>,
+) -> Result<StatusCode, StatusCode> {
+    let token = jar.get("token").ok_or(StatusCode::UNAUTHORIZED)?;
+    let payload = match jwt::decode(token.value()) {
+        Ok(token_data) => {
+            let role = token_data.claims.role;
+            if role != "admin" {
+                info!("Attempting to create user with role {role}");
+                return Err(StatusCode::UNAUTHORIZED);
+            }
+            payload
+        }, 
+        Err(_) => {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    };
+
+    let conn = pool.get().unwrap(); 
+    let rows_updated = conn
+        .prepare("
+            UPDATE user
+            SET
+                group_id = ?
+            WHERE
+                email = ?
+        ").unwrap()
+        .execute(params![payload.group, payload.email])
+        .map_err(|e| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if rows_updated > 0 { Ok(StatusCode::OK) } else { Err(StatusCode::NOT_FOUND) }
+}
+
 async fn create_user(
     State(pool): State<Pool<SqliteConnectionManager>>,
     jar: CookieJar,
@@ -408,6 +449,7 @@ async fn main() -> Result<()> {
         .route("/api/users", get(get_users))
         .route("/api/user", get(get_user))
         .route("/api/user/{email}/send_email", post(send_email))
+        .route("/api/user", patch(patch_user))
         .route("/api/authenticate", get(authenticate))
         .route("/api/files", get(get_files))
         .route("/api/download/{file}", get(download_file))
