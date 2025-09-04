@@ -401,7 +401,7 @@ async fn main() -> Result<()> {
     let manager = SqliteConnectionManager::file(db);
     let pool = r2d2::Pool::new(manager).unwrap();
     sql::init_sql(pool.clone())?;
-    send_admin_token().await;
+    send_admin_token().await?;
 
     let app = Router::new()
         .route("/api/users", post(create_user))
@@ -413,7 +413,7 @@ async fn main() -> Result<()> {
         .route("/api/download/{file}", get(download_file))
         .with_state(pool);
 
-    let bind_address = "[::1]:3000";
+    let bind_address = "0.0.0.0:3000";
     info!("Server listening on {bind_address}");
 
     let listener = tokio::net::TcpListener::bind(bind_address).await.unwrap();
