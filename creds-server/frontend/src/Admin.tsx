@@ -188,11 +188,8 @@ function AddUser(props: AddUserProps) {
             })
             .then((body) => {
                 setUsers((_users) => {
-                    let res: {[key: string]: User} = {};
-                    for (const elem of body) {
-                        let user = elem as User;
-                        res[user.email] = user;
-                    }
+                    let res: {[key: string]: User} = {..._users};
+                    res[body.email] = body;
                     return res;
                 });
             })
