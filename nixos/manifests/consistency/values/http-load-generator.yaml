@@ -1,0 +1,88 @@
+replicas: 2
+secretName: "demo-consistency"
+hosts: [
+    {
+        "host_name": "group1",
+        "base_url": "http://group1:3003"
+    },
+    {
+        "host_name": "group2",
+        "base_url": "http://group2:3003"
+    },
+    {
+        "host_name": "group3",
+        "base_url": "http://group3:3003"
+    },
+    {
+        "host_name": "group4",
+        "base_url": "http://group4:3003"
+    },
+    {
+        "host_name": "group5",
+        "base_url": "http://group5:3003"
+    },
+    {
+        "host_name": "group6",
+        "base_url": "http://group6:3003"
+    },
+    {
+        "host_name": "group7",
+        "base_url": "http://group7:3003"
+    },
+    {
+        "host_name": "group8",
+        "base_url": "http://group8:3003"
+    },
+    {
+        "host_name": "group9",
+        "base_url": "http://group9:3003"
+    },
+    {
+        "host_name": "group10",
+        "base_url": "http://group10:3003"
+    },
+    {
+        "host_name": "group11",
+        "base_url": "http://group11:3003"
+    },
+    {
+        "host_name": "group12",
+        "base_url": "http://group12:3003"
+    },
+    {
+        "host_name": "group13",
+        "base_url": "http://group13:3003"
+    },
+    {
+        "host_name": "group14",
+        "base_url": "http://group14:3003"
+    },
+    {
+        "host_name": "group15",
+        "base_url": "http://group15:3003"
+    },
+    {
+        "host_name": "group16",
+        "base_url": "http://group16:3003"
+    },
+    {
+        "host_name": "group17",
+        "base_url": "http://group17:3003"
+    },
+    {
+        "host_name": "group18",
+        "base_url": "http://group18:3003"
+    },
+    {
+        "host_name": "group19",
+        "base_url": "http://group19:3003"
+    },
+    {
+        "host_name": "group20",
+        "base_url": "http://group20:3003"
+    },
+    {
+        "host_name": "landau",
+        "base_url": "http://landau:3003"
+    }
+]

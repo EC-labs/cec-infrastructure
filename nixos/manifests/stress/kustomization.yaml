@@ -1,7 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+helmGlobals:
+ chartHome: ../helm-charts
+
+helmCharts:
+  - name: http-load-generator releaseName: http-load-generator
+    namespace: default
+    valuesFile: values/http-load-generator.yaml
+
 resources:
   - ./resources/notifications-service.yaml
   - ./resources/experiment-producer.yaml
-  - ./resources/http-load-generator.yaml

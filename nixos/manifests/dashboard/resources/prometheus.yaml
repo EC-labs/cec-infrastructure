@@ -41,8 +41,14 @@ data:
 
       - job_name: http-load-generator
         scrape_interval: 1s
-        static_configs:
-        - targets: ['http-load-generator:3002']
+        metrics_path: /metrics
+        scheme: http
+        dns_sd_configs:
+          - names:
+              - http-load-generator
+            refresh_interval: 2s
+            type: A
+            port: 3002
 
       # Get metrics from other prometheus servers
       - job_name: infrastructure-costs

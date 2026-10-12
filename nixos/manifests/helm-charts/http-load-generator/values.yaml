@@ -1,0 +1,8 @@
+image:
+  repository: dclandau/cec-http-load-generator
+  tag: null
+
+hostPort: 3003
+replicas: 1
+secretName: ""
+hosts: []
