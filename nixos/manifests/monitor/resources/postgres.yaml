@@ -1860,7 +1860,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "pg_stat_database_tup_updated{datname=~\"$datname\", instance=~\"$instance\"} != 0",
+              "expr": "rate(pg_stat_database_tup_updated{datname=~\"$datname\", instance=~\"$instance\"}[$interval])",
               "format": "time_series",
               "intervalFactor": 2,
               "legendFormat": "{{datname}}",
@@ -1954,7 +1954,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "pg_stat_database_tup_fetched{datname=~\"$datname\", instance=~\"$instance\"} != 0",
+              "expr": "rate(pg_stat_database_tup_fetched{datname=~\"$datname\", instance=~\"$instance\"}[$interval])",
               "format": "time_series",
               "intervalFactor": 2,
               "legendFormat": "{{datname}}",
@@ -2048,7 +2048,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "pg_stat_database_tup_inserted{datname=~\"$datname\", instance=~\"$instance\"} != 0",
+              "expr": "rate(pg_stat_database_tup_inserted{datname=~\"$datname\", instance=~\"$instance\"}[$interval])",
               "format": "time_series",
               "intervalFactor": 2,
               "legendFormat": "{{datname}}",
@@ -2239,7 +2239,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "pg_stat_database_tup_returned{datname=~\"$datname\", instance=~\"$instance\"} != 0",
+              "expr": "rate(pg_stat_database_tup_returned{datname=~\"$datname\", instance=~\"$instance\"}[$interval])",
               "format": "time_series",
               "intervalFactor": 2,
               "legendFormat": "{{datname}}",
@@ -2427,7 +2427,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "pg_stat_database_tup_deleted{datname=~\"$datname\", instance=~\"$instance\"} != 0",
+              "expr": "rate(pg_stat_database_tup_deleted{datname=~\"$datname\", instance=~\"$instance\"}[$interval])",
               "format": "time_series",
               "intervalFactor": 2,
               "legendFormat": "{{datname}}",
