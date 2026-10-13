@@ -19,6 +19,13 @@ metadata:
   labels:
     app: experiment-producer
 spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: notifications-service
+          topologyKey: kubernetes.io/hostname
   restartPolicy: Never
   volumes:
     - name: config
