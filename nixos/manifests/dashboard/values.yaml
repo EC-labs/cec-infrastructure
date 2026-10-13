@@ -33,7 +33,7 @@ datasources:
         uid: postgres
         type: grafana-postgresql-datasource
         access: proxy
-        url: postgres:5432
+        url: postgres-replica:5432
         database: cec 
         user: grafanareader
         secureJsonData:

@@ -19,7 +19,8 @@ for key in "${keys[@]}"; do
 done
 
 grafanareader_password="$(jq -r '.data.GRAFANAREADER_PASSWORD' < "${decrypted_d}/database-secret.json" | base64 -d)"
-sql="$(sed -e "s/{{GRAFANAREADER_PASSWORD}}/${grafanareader_password}/" < "${decrypted_d}/init.sql" | base64 -w 0)"
+replicator_password="$(jq -r '.data.REPLICATOR_PASSWORD' < "${decrypted_d}/database-secret.json" | base64 -d)"
+sql="$(sed -e "s/{{GRAFANAREADER_PASSWORD}}/${grafanareader_password}/" -e "s/{{REPLICATOR_PASSWORD}}/${replicator_password}/" < "${decrypted_d}/init.sql" | base64 -w 0)"
 
 echo '{
     "apiVersion": "v1",

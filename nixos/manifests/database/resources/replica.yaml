@@ -1,0 +1,112 @@
+# replica:
+#   image: postgres:14.1-alpine
+#   entrypoint: ["/bin/sh", "/usr/local/bin/replica-entrypoint.sh"]
+#   command: ["postgres"]
+#   environment:
+#     PGDATA: /var/lib/postgresql/data
+#     PGUSER: "replicator"
+#     PGPASSWORD: "replica-pass"
+#   ports:
+#     - "5432:5432"
+#   volumes:
+#     - replica-data:/var/lib/postgresql/data
+#     - ./replica/replica-entrypoint.sh:/usr/local/bin/replica-entrypoint.sh:ro
+#   restart: always
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-replica-pvc
+spec:
+  storageClassName: local-path
+  accessModes: 
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-replica
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres-replica
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-replica-config
+data:
+  replica-entrypoint.sh: |
+    #!/bin/sh
+    set -e
+
+    # Run the base backup only if the data directory is empty
+    if [ -z "$(ls -A "$PGDATA")" ]; then
+        echo "Running pg_basebackup..."
+
+        pg_basebackup \
+            -h postgres \
+            -D "$PGDATA" \
+            -U replicator \
+            -v \
+            -P \
+            -X stream \
+            -S replica_1_slot \
+            -R
+    else
+        echo "Data directory is not empty; skipping pg_basebackup."
+    fi
+
+    # Start the standard PostgreSQL entrypoint
+    exec /usr/local/bin/docker-entrypoint.sh "$@"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres-replica
+  labels:
+    app: postgres-replica
+spec:
+  restartPolicy: Always
+  resources:
+  containers:
+    - image: postgres:14.1-alpine
+      name: postgres
+      command:
+      - /bin/sh
+      - /usr/local/bin/replica-entrypoint.sh
+      args:
+      - postgres
+      env:
+        - name: PGUSER
+          value: replicator
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database
+              key: REPLICATOR_PASSWORD
+        - name: PGDATA
+          value: /var/lib/postgresql/data
+      volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        - name: entrypoint
+          mountPath: /usr/local/bin/replica-entrypoint.sh
+          subPath: replica-entrypoint.sh
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: postgres-replica-pvc
+    - name: entrypoint
+      configMap: 
+        name: postgres-replica-config
+        items:
+        - key: "replica-entrypoint.sh"
+          path: "replica-entrypoint.sh"

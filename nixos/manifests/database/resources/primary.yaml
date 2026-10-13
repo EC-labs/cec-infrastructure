@@ -1,0 +1,123 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  storageClassName: local-path
+  accessModes: 
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: primary-config
+data:
+  postgresql.conf: |
+    # Enable WAL archiving and replication
+    wal_level = replica                    # Required for replication
+    max_wal_senders = 10                   # Max number of replicas
+    wal_keep_size = 1GB                    # Keep WAL files for slow replicas
+    hot_standby = on                       # Set on replicas to allow read-only queries
+
+    # Recommended settings for replication
+    synchronous_commit = local             # Can set to 'remote_apply' for sync replication
+    max_replication_slots = 10             # Prevent WAL deletion before replica catches up
+
+    listen_addresses = '*'
+
+    # Archive settings (optional but recommended for point-in-time recovery)
+    # archive_mode = on
+    # archive_command = 'test ! -f /var/lib/postgresql/archive/%f && cp %p /var/lib/postgresql/archive/%f'
+  pg_hba.conf: |
+    # "local" is for Unix domain socket connections only
+    local   all             all                                     trust
+    # IPv4 local connections:
+    host    all             all             127.0.0.1/32            trust
+    # IPv6 local connections:
+    host    all             all             ::1/128                 trust
+    # Allow replication connections from localhost, by a user with the
+    # replication privilege.
+
+    local   replication     all                                     trust
+    host    replication     all             127.0.0.1/32            trust
+    host    replication     all             ::1/128                 trust
+
+    # Allow replication connections from replica servers
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    host    replication     replicator      0.0.0.0/0               scram-sha-256
+    host    all             all             0.0.0.0/0               scram-sha-256
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  restartPolicy: Always
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      memory: 1Gi
+  containers:
+    - image: postgres:14.1-alpine
+      name: postgres
+      args:
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+      env:
+        - name: POSTGRES_USER
+          value: cec
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database
+              key: POSTGRES_PASSWORD
+      volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        - name: config
+          mountPath: /etc/postgresql
+        - name: init
+          mountPath: /docker-entrypoint-initdb.d
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: postgres-pvc
+
+    - name: init
+      secret:
+        secretName: database-init
+        items:
+          - key: init.sql
+            path: init.sql
+    - name: config
+      configMap: 
+        name: primary-config
+        items:
+        - key: "postgresql.conf"
+          path: "postgresql.conf"
+        - key: "pg_hba.conf"
+          path: "pg_hba.conf"
+
