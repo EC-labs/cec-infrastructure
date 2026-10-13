@@ -26,5 +26,6 @@
         "10.0.1.135" = [ "k8s-worker-medium1" ];
         "10.0.1.17" = [ "k8s-worker-medium2" ];
         "10.0.1.198" = [ "k8s-worker-medium3" ];
+        "10.0.1.29" = [ "k8s-worker-medium4" ];
     };
 }

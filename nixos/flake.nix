@@ -101,6 +101,15 @@
                         ./hosts/k8s-worker-medium3.nix
                     ];
                 }; 
+                cec-k8s-worker-medium4 = nixpkgs.lib.nixosSystem {
+                    inherit system;
+
+                    specialArgs = { inherit inputs; };
+                    modules = [
+                        agenix.nixosModules.default
+                        ./hosts/k8s-worker-medium4.nix
+                    ];
+                };
             };
         };
 }

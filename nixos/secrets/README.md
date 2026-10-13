@@ -28,7 +28,7 @@ nix-instantiate --json --eval -E "(let kubeconfig = import ./config/kubeconfig.n
 Rekey agenix:
 ```bash
 KEY="root-ca.pem"
-nix run github:ryantm/agenix#agenix -- -d "${KEY}.age" > ".decrypted/${KEY}"
+agenix -d "${KEY}.age" > ".decrypted/${KEY}"
 rm "${KEY}.age"
-nix run github:ryantm/agenix#agenix -- -e "${KEY}.age" < ".decrypted/${KEY}"
+agenix -e "${KEY}.age" < ".decrypted/${KEY}"
 ```
