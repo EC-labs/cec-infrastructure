@@ -29,6 +29,25 @@ metadata:
     app: http-load-generator
     instance: "{{ $i }}"
 spec:
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app: http-load-generator
+        topologyKey: kubernetes.io/hostname
+      - labelSelector:
+          matchLabels:
+            app: kafka-1
+        topologyKey: kubernetes.io/hostname
+      - labelSelector:
+          matchLabels:
+            app: kafka-2
+        topologyKey: kubernetes.io/hostname
+      - labelSelector:
+          matchLabels:
+            app: kafka-3
+        topologyKey: kubernetes.io/hostname
   volumes:
     - name: creds-key
       secret:
