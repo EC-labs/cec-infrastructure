@@ -72,15 +72,13 @@ metadata:
     app: postgres
 spec:
   restartPolicy: Always
-  resources:
-    requests:
-      cpu: 1000m
-      memory: 1Gi
-    limits:
-      memory: 1Gi
   containers:
     - image: postgres:14.1-alpine
       name: postgres
+      resources:
+        requests:
+          cpu: 500m
+          memory: 500Mi
       args:
       - -c
       - config_file=/etc/postgresql/postgresql.conf

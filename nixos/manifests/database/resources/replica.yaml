@@ -75,10 +75,13 @@ metadata:
     app: postgres-replica
 spec:
   restartPolicy: Always
-  resources:
   containers:
     - image: postgres:14.1-alpine
       name: postgres
+      resources:
+        requests:
+          cpu: 500m
+          memory: 500Mi
       command:
       - /bin/sh
       - /usr/local/bin/replica-entrypoint.sh
