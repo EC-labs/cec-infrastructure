@@ -40,7 +40,19 @@ metadata:
   labels:
     # BROKER SPECIFIC
     app: kafka-1
+    cluster: kafka
 spec:
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app: http-load-generator
+        topologyKey: kubernetes.io/hostname
+      - labelSelector:
+          matchLabels:
+            cluster: kafka
+        topologyKey: kubernetes.io/hostname
   restartPolicy: Always
   initContainers:
     - name: setup-credentials
