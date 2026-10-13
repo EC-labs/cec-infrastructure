@@ -108,6 +108,10 @@ metadata:
 spec:
   containers:
     - name: prometheus
+      resources:
+        requests:
+          cpu: 500m
+          memory: 500Mi
       image: prom/prometheus:v3.13.3
       args:
         - --config.file=/etc/prometheus/prometheus.yaml

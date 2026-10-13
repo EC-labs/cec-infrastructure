@@ -1,5 +1,10 @@
 replicas: 1
 
+resources:
+  requests:
+    cpu: 500m
+    memory: 1.5Gi
+
 admin:
   ## Name of the secret. Can be templated.
   existingSecret: "grafana"
