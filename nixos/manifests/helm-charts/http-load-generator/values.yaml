@@ -6,3 +6,6 @@ hostPort: 3003
 replicas: 1
 secretName: ""
 hosts: []
+
+env:
+  RUST_LOG: "info"

@@ -1,5 +1,7 @@
 replicas: 2
 secretName: "demo-consistency"
+env:
+  RUST_LOG: "info,http_load_generator::request=debug"
 hosts: [
     {
         "host_name": "group1",

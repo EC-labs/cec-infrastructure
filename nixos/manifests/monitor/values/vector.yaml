@@ -38,7 +38,7 @@ customConfig:
 
         . = {
           "timestamp": ts,
-          "level": parsed.level,
+          "level": "error",
           "group": parsed.group,
           "message": parsed.message
         }
