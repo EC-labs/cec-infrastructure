@@ -110,7 +110,7 @@ spec:
     - name: prometheus
       resources:
         requests:
-          cpu: 500m
+          cpu: 100m
           memory: 500Mi
       image: prom/prometheus:v3.13.3
       args:

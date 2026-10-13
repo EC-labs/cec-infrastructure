@@ -75,6 +75,10 @@ spec:
           readOnly: true
   containers:
     - name: http-load-generator
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 500Mi
       image: {{ $.Values.image.repository }}:{{ default $.Chart.AppVersion $.Values.image.tag }}
       ports:
       - name: metrics

@@ -56,6 +56,10 @@ spec:
     spec:
       containers:
         - name: notifications-service
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
           image: dclandau/cec-notifications-service:b738c7c
           env:
             - name: SECRET_KEY

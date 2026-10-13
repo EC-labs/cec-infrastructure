@@ -76,6 +76,10 @@ spec:
           readOnly: true
   containers:
     - name: experiment-producer
+      resources:
+        requests:
+          cpu: 100m
+          memory: 100Mi
       image: dclandau/cec-experiment-producer:d1dee71
       args:
         - "--brokers"
